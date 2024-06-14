@@ -9,17 +9,26 @@ public class TabelaDeSimbolos {
         INTEIRO,
         REAL,
         LOGICO,
-        INVALIDO
+        INVALIDO,
+        VOID
     }
 
     class EntradaTabelaDeSimbolos {
         String nome;
         TipoJander tipo;
+        Boolean ponteiro;
         // boolean constante ?
 
         private EntradaTabelaDeSimbolos(String nome, TipoJander tipo) {
             this.nome = nome;
             this.tipo = tipo;
+            this.ponteiro = false;
+        }
+
+        private EntradaTabelaDeSimbolos(String nome, TipoJander tipo, Boolean ponteiro) {
+            this.nome = nome;
+            this.tipo = tipo;
+            this.ponteiro = ponteiro;
         }
     }
 

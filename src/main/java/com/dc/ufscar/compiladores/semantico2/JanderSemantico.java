@@ -3,13 +3,15 @@ package com.dc.ufscar.compiladores.semantico2;
 import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class JanderSemantico extends JanderBaseVisitor<Void> {
-    TabelaDeSimbolos tabela;
+    // TabelaDeSimbolos tabela;
+    Escopos escoposAninhados;
 
     // aqui temos uma tabela, a global, precisamos ver
     // como faremos em relação a tabela de escopos
     @Override
     public Void visitPrograma(JanderParser.ProgramaContext ctx) {
-        tabela = new TabelaDeSimbolos();
+        // tabela = new TabelaDeSimbolos();
+        escoposAninhados = new Escopos();
         return super.visitPrograma(ctx);
     }
 
@@ -26,12 +28,11 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitDeclaracao_local(JanderParser.Declaracao_localContext ctx) {
-
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         if (ctx.variavel() != null) {
             return visitVariavel(ctx.variavel());
         }
         if (ctx.IDENT() != null) {
-
             String nomeVar = ctx.IDENT().getText();
             String strTipoVar = ctx.tipo_basico().getText();
             TipoJander tipoVar = TipoJander.INVALIDO;
@@ -62,8 +63,53 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
     }
 
     @Override
-    public Void visitVariavel(JanderParser.VariavelContext ctx) {
+    public Void visitDeclaracao_global(JanderParser.Declaracao_globalContext ctx) {
+        escoposAninhados.criarNovoEscopo();
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        if (ctx.FUNCAO() != null) {
+            String nomeFuncao = ctx.IDENT().getText();
+            // TipoJander tipoFuncao = JanderSemanticoUtils.verificarTipo(tabela, ctx.tipo_estendido());
+            TipoJander tipoFuncao = TipoJander.REAL;
+            tabela.adicionar(nomeFuncao, tipoFuncao);
+        } else if (ctx.PROCEDIMENTO() != null) {
+            String nomeProcedimento = ctx.IDENT().getText();
+            tabela.adicionar(nomeProcedimento, TipoJander.VOID);
+        }
+        for (JanderParser.ParametroContext param : ctx.parametros().parametro()) {
+            for (JanderParser.IdentificadorContext ident : param.identificador()) {
+                String nomeParam = ident.getText();
+                String strTipoParam = param.tipo_estendido().getText();
+                TipoJander tipoParam = TipoJander.INVALIDO;
+                switch (strTipoParam) {
+                    case "INTEIRO":
+                        tipoParam = TipoJander.INTEIRO;
+                        break;
+                    case "REAL":
+                        tipoParam = TipoJander.REAL;
+                        break;
+                    case "LITERAL":
+                        tipoParam = TipoJander.LITERAL;
+                        break;
+                    case "LOGICO":
+                        tipoParam = TipoJander.LOGICO;
+                        break;
+                    default:
+                        break;
+                }
+                if (tabela.existe(nomeParam)) {
+                    JanderSemanticoUtils.adicionarErroSemantico(ident.start,
+                            "Parâmetro " + nomeParam + " já existe");
+                } else {
+                    tabela.adicionar(nomeParam, tipoParam);
+                }
+            }
+        }
+        return super.visitDeclaracao_global(ctx);
+    }
 
+    @Override
+    public Void visitVariavel(JanderParser.VariavelContext ctx) {
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         String strTipoVar = ctx.tipo().getText();
         TipoJander tipoVar = TipoJander.INVALIDO;
         switch (strTipoVar.toUpperCase()) {
@@ -82,16 +128,14 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
             default:
                 break;
         }
-
+        System.out.println("tipoVar: " + strTipoVar);
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nomeVar = ident.getText();
-
             if (tabela.existe(nomeVar)) {
 
                 JanderSemanticoUtils.adicionarErroSemantico(ident.start, "identificador " +
                         nomeVar + " ja declarado anteriormente");
             } else {
-
                 tabela.adicionar(nomeVar, tipoVar);
                 if (tipoVar == TipoJander.INVALIDO) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start, "tipo " + strTipoVar + " nao declarado");
@@ -104,7 +148,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitCmdAtribuicao(JanderParser.CmdAtribuicaoContext ctx) {
-
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         JanderSemanticoUtils.setNomeVarAtrib(ctx.identificador().getText());
         TipoJander tipoExpressao = JanderSemanticoUtils.verificarTipo(tabela, ctx.expressao());
 
@@ -127,6 +171,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitCmdLeia(JanderParser.CmdLeiaContext ctx) {
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nomeVar = ident.getText();
             if (!tabela.existe(nomeVar)) {
@@ -153,8 +198,8 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitParcela_nao_unario(JanderParser.Parcela_nao_unarioContext ctx) {
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         if (ctx.identificador() != null) {
-
             JanderSemanticoUtils.verificarTipo(tabela, ctx);
         } else if (ctx.CADEIA() != null) {
 
@@ -165,6 +210,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitParcela_unario(JanderParser.Parcela_unarioContext ctx) {
+        TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         if (ctx.identificador() != null) {
             JanderSemanticoUtils.verificarTipo(tabela, ctx);
         } else if (ctx.NUM_INT() != null) {

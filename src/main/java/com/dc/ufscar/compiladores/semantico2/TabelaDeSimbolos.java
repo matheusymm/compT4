@@ -9,6 +9,10 @@ public class TabelaDeSimbolos {
         INTEIRO,
         REAL,
         LOGICO,
+        PINTEIRO,
+        PREAL,
+        PLITERAL,
+        PLOGICO,
         INVALIDO,
         VOID
     }

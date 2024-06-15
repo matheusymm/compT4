@@ -11,10 +11,42 @@ import com.dc.ufscar.compiladores.semantico2.JanderParser.Fator_logicoContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.ParcelaContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.TermoContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.Termo_logicoContext;
+import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class JanderSemanticoUtils {
     public static List<String> errosSemanticos = new ArrayList<>();
     public static List<String> nomeVarAtrib = new ArrayList<>();
+
+    public static TipoJander getTipo(String strTipoVar) {
+        TipoJander tipoVar = TipoJander.INVALIDO;
+
+        switch (strTipoVar.replace("^", "P").toUpperCase()) {
+            case "INTEIRO":
+                tipoVar = TipoJander.INTEIRO;
+                break;
+            case "REAL":
+                tipoVar = TipoJander.REAL;
+                break;
+            case "LITERAL":
+                tipoVar = TipoJander.LITERAL;
+                break;
+            case "LOGICO":
+                tipoVar = TipoJander.LOGICO;
+                break;
+            case "PINTEIRO":
+                tipoVar = TipoJander.PINTEIRO;
+                break;
+            case "PREAL":
+                tipoVar = TipoJander.PREAL;
+                break;
+            case "PLITERAL":
+                tipoVar = TipoJander.PLITERAL;
+                break;
+            default:
+                break;
+        }
+        return tipoVar;
+    }
 
     public static void setNomeVarAtrib(String nome) {
         nomeVarAtrib.add(String.format("%s", nome));
@@ -38,12 +70,19 @@ public class JanderSemanticoUtils {
         System.out.println(tipo1.toString() + tipo2.toString());
         // Talvez refatorar essa condição, vai ser dificil fazer manuntentação dela
         if (aux1 == aux2 ||
-            aux1 == TabelaDeSimbolos.TipoJander.REAL && aux2 == TabelaDeSimbolos.TipoJander.INTEIRO ||
-            aux1 == TabelaDeSimbolos.TipoJander.INTEIRO && aux2 == TabelaDeSimbolos.TipoJander.REAL ||
-            aux1 == TabelaDeSimbolos.TipoJander.LOGICO && aux2 == TabelaDeSimbolos.TipoJander.REAL ||
-            aux1 == TabelaDeSimbolos.TipoJander.REAL && aux2 == TabelaDeSimbolos.TipoJander.LOGICO) {
+                aux1 == TabelaDeSimbolos.TipoJander.REAL && aux2 == TabelaDeSimbolos.TipoJander.INTEIRO ||
+                aux1 == TabelaDeSimbolos.TipoJander.INTEIRO && aux2 == TabelaDeSimbolos.TipoJander.REAL ||
+                aux1 == TabelaDeSimbolos.TipoJander.LOGICO && aux2 == TabelaDeSimbolos.TipoJander.REAL ||
+                aux1 == TabelaDeSimbolos.TipoJander.REAL && aux2 == TabelaDeSimbolos.TipoJander.LOGICO
+        // aux1 == TabelaDeSimbolos.TipoJander.PINTEIRO && aux2 ==
+        // TabelaDeSimbolos.TipoJander.INTEIRO ||
+        // aux1 == TabelaDeSimbolos.TipoJander.INTEIRO && aux2 ==
+        // TabelaDeSimbolos.TipoJander.PINTEIRO
+        ) {
             return false;
-        } else {
+        } else
+
+        {
             return true;
         }
     }
@@ -126,7 +165,7 @@ public class JanderSemanticoUtils {
                 return TabelaDeSimbolos.TipoJander.INVALIDO;
             }
             return verificarTipo(tabela, nome);
-        } else if(ctx.IDENT() != null) { 
+        } else if (ctx.IDENT() != null) {
             return tabela.verificar(ctx.IDENT().getText());
         } else if (ctx.NUM_INT() != null) {
             return TabelaDeSimbolos.TipoJander.INTEIRO;
@@ -151,7 +190,9 @@ public class JanderSemanticoUtils {
 
     public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela,
             JanderParser.Parcela_nao_unarioContext ctx) {
-        if (ctx.identificador() != null) {
+        if (ctx.identificador() != null && ctx.getText().contains("&")) {
+            System.out.println("Aqui na parcela " + ctx.getText() + " ");
+            // Se chegou aqui, o identificador é um endereço.
             return verificarTipo(tabela, ctx.identificador().getText());
         } else if (ctx.CADEIA() != null) {
 
@@ -235,35 +276,39 @@ public class JanderSemanticoUtils {
         return ret;
     }
 
-    // public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela, JanderParser.Tipo_estendidoContext ctx) {
-    //     if(ctx.tipo_basico_ident() != null) {
-    //         return verificarTipo(tabela, ctx.tipo_basico_ident());
-    //     } else {
-    //         return TabelaDeSimbolos.TipoJander.INVALIDO;
-    //     }
+    // public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos
+    // tabela, JanderParser.Tipo_estendidoContext ctx) {
+    // if(ctx.tipo_basico_ident() != null) {
+    // return verificarTipo(tabela, ctx.tipo_basico_ident());
+    // } else {
+    // return TabelaDeSimbolos.TipoJander.INVALIDO;
+    // }
     // }
 
-    public static TabelaDeSimbolos.TipoJander verficarTipo(TabelaDeSimbolos tabela, JanderParser.Tipo_basico_identContext ctx) {
-        if(ctx.tipo_basico() != null) {
+    public static TabelaDeSimbolos.TipoJander verficarTipo(TabelaDeSimbolos tabela,
+            JanderParser.Tipo_basico_identContext ctx) {
+        if (ctx.tipo_basico() != null) {
             return verificarTipo(tabela, ctx.tipo_basico());
         } else {
             return tabela.verificar(ctx.IDENT().getText());
         }
     }
 
-    public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela, JanderParser.Tipo_basicoContext ctx) {
-        if(ctx.LITERAL() != null) {
+    public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela,
+            JanderParser.Tipo_basicoContext ctx) {
+        if (ctx.LITERAL() != null) {
             return TabelaDeSimbolos.TipoJander.LITERAL;
-        } else if(ctx.INTEIRO() != null) {
+        } else if (ctx.INTEIRO() != null) {
             return TabelaDeSimbolos.TipoJander.INTEIRO;
-        } else if(ctx.REAL() != null) {
+        } else if (ctx.REAL() != null) {
             return TabelaDeSimbolos.TipoJander.REAL;
         } else {
             return TabelaDeSimbolos.TipoJander.LOGICO;
         }
     }
 
-    public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela, JanderParser.IdentificadorContext ctx) {
+    public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela,
+            JanderParser.IdentificadorContext ctx) {
         String nome = ctx.getText();
         if (!tabela.existe(nome)) {
             adicionarErroSemantico(ctx.getStart(), "identificador " + nome + " nao declarado");

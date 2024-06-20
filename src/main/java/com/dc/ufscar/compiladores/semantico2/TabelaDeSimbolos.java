@@ -9,18 +9,20 @@ public class TabelaDeSimbolos {
         INTEIRO,
         REAL,
         LOGICO,
-        PINTEIRO,
-        PREAL,
-        PLITERAL,
-        PLOGICO,
+        // PINTEIRO,
+        // PREAL,
+        // PLITERAL,
+        // PLOGICO,
         INVALIDO,
-        VOID
+        VOID,
+        REGISTRO
     }
 
     class EntradaTabelaDeSimbolos {
         String nome;
         TipoJander tipo;
         Boolean ponteiro;
+        TabelaDeSimbolos tabelaRegistro;
         // boolean constante ?
 
         private EntradaTabelaDeSimbolos(String nome, TipoJander tipo) {
@@ -34,6 +36,10 @@ public class TabelaDeSimbolos {
             this.tipo = tipo;
             this.ponteiro = ponteiro;
         }
+
+        // public void criaTabelaRegistro() {
+        //     this.tabelaRegistro = new TabelaDeSimbolos();
+        // }
     }
 
     private final Map<String, EntradaTabelaDeSimbolos> tabela;
@@ -46,12 +52,27 @@ public class TabelaDeSimbolos {
         tabela.put(nome, new EntradaTabelaDeSimbolos(nome, tipo));
     }
 
+    public void adicionar(String nome, TipoJander tipo, Boolean ponteiro) {
+        tabela.put(nome, new EntradaTabelaDeSimbolos(nome, tipo, ponteiro));
+    }
+
     public boolean existe(String nome) {
         return tabela.containsKey(nome);
     }
 
     public TipoJander verificar(String nome) {
-
         return tabela.get(nome).tipo;
+    }
+
+    public TabelaDeSimbolos verificarRegistro(String nome) {
+        return tabela.get(nome).tabelaRegistro;
+    }
+
+    public Boolean verificarPonteiro(String nome) {
+        return tabela.get(nome).ponteiro;
+    }
+
+    public void adicionarRegistro(String nome, TabelaDeSimbolos tabelaRegistro) {
+        tabela.get(nome).tabelaRegistro = tabelaRegistro;
     }
 }

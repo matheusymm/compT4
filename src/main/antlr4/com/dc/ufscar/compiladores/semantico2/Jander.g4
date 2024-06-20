@@ -108,7 +108,7 @@ cmdCaso : 'caso' exp_aritmetica 'seja' selecao ('senao' cmd*)? 'fim_caso';
 cmdPara : 'para' IDENT '<-' exp_aritmetica 'ate' exp_aritmetica 'faca' cmd* 'fim_para';
 cmdEnquanto : 'enquanto' expressao 'faca' cmd* 'fim_enquanto';
 cmdFaca : 'faca' cmd* 'ate' expressao;
-cmdAtribuicao : '^'? identificador '<-' expressao;
+cmdAtribuicao : circ='^'? identificador '<-' expressao;
 cmdChamada : IDENT '(' expressao (',' expressao)* ')';
 cmdRetorne : 'retorne' expressao;
 selecao: item_selecao*;
@@ -123,7 +123,7 @@ op1 : '+' | '-';
 op2 : '*' | '/';
 op3 : '%';
 parcela : op_unario? parcela_unario | parcela_nao_unario;
-parcela_unario : '^'? identificador
+parcela_unario : circ='^'? identificador
              | IDENT '(' expressao (',' expressao)* ')'
              | NUM_INT
              | NUM_REAL

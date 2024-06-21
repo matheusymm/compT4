@@ -22,6 +22,7 @@ public class TabelaDeSimbolos {
         TipoJander tipo;
         Boolean ponteiro;
         TabelaDeSimbolos tabelaRegistro;
+        String nomeRegistro;
         // boolean constante ?
 
         private EntradaTabelaDeSimbolos(String nome, TipoJander tipo) {
@@ -51,13 +52,18 @@ public class TabelaDeSimbolos {
         tabela.put(nome, new EntradaTabelaDeSimbolos(nome, tipo));
     }
 
+    public void setNomeRegistro(String nome, String tipoRegistro) {
+        tabela.get(nome).nomeRegistro = tipoRegistro;
+    }
+
     public void adicionar(String nome, TipoJander tipo, Boolean ponteiro) {
         tabela.put(nome, new EntradaTabelaDeSimbolos(nome, tipo, ponteiro));
     }
 
     public void printTabela() {
+        System.out.println("---------Tabela de Simbolos--------");
         for (HashMap.Entry<String, EntradaTabelaDeSimbolos> entry : tabela.entrySet()) {
-            System.out.println("Nome: " + entry.getValue().nome + " Tipo: " + entry.getValue().tipo + " Ponteiro: "
+            System.out.println("--1--Nome: " + entry.getValue().nome + " Tipo: " + entry.getValue().tipo + " Ponteiro: "
                     + entry.getValue().ponteiro);
         }
     }

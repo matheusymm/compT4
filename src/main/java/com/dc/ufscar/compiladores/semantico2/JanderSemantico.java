@@ -1,10 +1,12 @@
 package com.dc.ufscar.compiladores.semantico2;
 
-import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.sound.midi.SysexMessage;
+
 import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
+import com.ibm.icu.impl.breakiter.ThaiBreakEngine;
 
 public class JanderSemantico extends JanderBaseVisitor<Void> {
     TabelaDeSimbolos REGISTROS = new TabelaDeSimbolos();
@@ -33,6 +35,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
     @Override
     public Void visitDeclaracao_local(JanderParser.Declaracao_localContext ctx) {
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        System.out.println("Tabela ID: " + tabela);
         if (ctx.variavel() != null) {
             System.out.println("Qtd Escolo DL: " + escoposAninhados.percorrerEscoposAninhados().size());
             System.out.println("Declaracao Local Chama VisitVariavel");
@@ -59,10 +62,13 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                 JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(),
                         "identificador " + nomeVar + " ja declarado anteriormente");
             } else {
-                tabela.adicionar(nomeVar, TipoJander.REGISTRO);
-                TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
-                tabela.adicionarRegistro(nomeVar, tabelaRegistro);
                 System.out.println("Visit Local: " + ctx.getText());
+                System.out.println("Nome Var: " + nomeVar);
+                tabela.adicionar(nomeVar, TipoJander.REGISTRO);
+                REGISTROS.adicionar(nomeVar, TipoJander.REGISTRO);
+                REGISTROS.adicionarRegistro(nomeVar, new TabelaDeSimbolos());
+                escoposAninhados.adicionarEscopo(REGISTROS.verificarRegistro(nomeVar));
+                qtdEscopos++;
             }
         }
 
@@ -102,46 +108,78 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitVariavel(JanderParser.VariavelContext ctx) {
+
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        System.out.println("tabela2:Id " + tabela);
+        System.out.println("textinho : " + ctx.getText());
         String strTipoVar = ctx.tipo().getText();
         TipoJander tipoVar = JanderSemanticoUtils.getTipo(strTipoVar.startsWith("registro") ? "registro" : strTipoVar);
+        String tipoRegistro = null;
+        if (tabela.existe(strTipoVar)) {
+            // System.out.println("VisitVariavel: " + strTipoVar + " ---- " +
+            // ctx.getText());
+            tipoVar = TipoJander.REGISTRO;
+            tipoRegistro = strTipoVar;
+
+        }
         Boolean registro = false;
         List<TabelaDeSimbolos> tabelasRegistro = new ArrayList<>();
 
-        System.out.println("VisitVariavel: " + strTipoVar);
+        // System.out.println("--VisitVariavel: " + strTipoVar);
         if (qtdEscopos == 0) {
+            TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
             for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
                 String nomeVar = ident.getText();
                 if (tabela.existe(nomeVar)) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start,
-                            "identificador " + nomeVar + " ja declarado anteriormente");
+                            "identificador2 " + nomeVar + " ja declarado anteriormente");
                 } else {
-                    System.out.println("VisitVariavel = 0: " + nomeVar + " " + tipoVar);
+                    System.out.println("--VisitVariavel = 0: " + nomeVar + " " + tipoVar);
+
                     tabela.adicionar(nomeVar, tipoVar);
+                    tabela.printTabela();
+                    if (tipoRegistro != null) { // Adicionando o nome do registro a variavel
+                        tabela.setNomeRegistro(nomeVar, tipoRegistro);
+                    }
                     if (tipoVar == TipoJander.REGISTRO) {
-                        System.out.println("Tipo Registro = 0");
+                        // System.out.println("Tipo Registro = 0 " + ctx.getText() + " nome var " +
+                        // nomeVar);
                         registro = true;
-                        TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
-                        tabelasRegistro.add(tabelaRegistro);
-                        REGISTROS.adicionarRegistro(nomeVar, tabelaRegistro);
+
+                        if (REGISTROS.existe(nomeVar)) {
+                            // se ja existe o registro declarado como variavel, a sua tabela em REGISTROS ja
+                            // existe
+                        } else if (REGISTROS.existe(tipoRegistro)) {
+                            System.out.println("FALA QUE ENTROU AQUI PLS " + tipoRegistro + " nome " + nomeVar);
+                            // Se existe um registro declarado, sua tabela ja existe.
+                        } else {
+                            REGISTROS.adicionar(nomeVar, tipoVar);
+                            REGISTROS.adicionarRegistro(nomeVar, tabelaRegistro);
+                        }
                     } else if (tipoVar == TipoJander.INVALIDO) {
                         JanderSemanticoUtils.adicionarErroSemantico(ident.start,
                                 "tipo " + strTipoVar + " nao declarado");
                     }
                 }
             }
+            if (tipoRegistro != null) {
+                tabelaRegistro = REGISTROS.verificarRegistro(tipoRegistro);
+                tabelasRegistro.add(tabelaRegistro);
+            }
+
         }
         while (qtdEscopos > 0) {
             for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
                 String nomeVar = ident.getText();
+                System.out.println("VisitVariavel112: " + nomeVar + " " + tipoVar + " " + qtdEscopos);
+
                 if (tabela.existe(nomeVar)) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start,
-                            "identificador " + nomeVar + " ja declarado anteriormente");
+                            "identificador3 " + nomeVar + " ja declarado anteriormente");
                 } else {
                     tabela.adicionar(nomeVar, tipoVar);
-                    if (tipoVar == TipoJander.REGISTRO) {
+                    if (tipoVar == TipoJander.REGISTRO) { // todo: revisar esse if para registros aninhados
                         registro = true;
-                        System.out.println("Variavel Registro: " + nomeVar);
                         TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
                         tabelasRegistro.add(tabelaRegistro);
                         REGISTROS.adicionarRegistro(nomeVar, tabelaRegistro);
@@ -157,14 +195,19 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         }
         if (registro) {
             for (TabelaDeSimbolos tabelaRegistro : tabelasRegistro) {
+                System.out.println("VisitVariavelIdddddd: " + tabelaRegistro);
                 escoposAninhados.adicionarEscopo(tabelaRegistro);
                 qtdEscopos++;
             }
             tabelasRegistro.clear();
+            registro = false;
         }
-        System.out.println("qtdEscopo Variavel: " + escoposAninhados.percorrerEscoposAninhados().size());
-        TabelaDeSimbolos tab2 = tabela.verificarRegistro("tVinho");
-        tab2.printTabela();
+        REGISTROS.printTabela();
+
+        // System.out.println("qtdEscopo Variavel: " +
+        // escoposAninhados.percorrerEscoposAninhados().size());
+        // TabelaDeSimbolos tab2 = tabela.verificarRegistro("tVinho");
+        // tab2.printTabela();
         // na duvida tira (:
         return super.visitVariavel(ctx);
     }
@@ -209,18 +252,24 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
     @Override
     public Void visitCmdLeia(JanderParser.CmdLeiaContext ctx) {
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        // REGISTROS.printTabela();
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
-            String nomeVar = ident.getText();
-            if (!tabela.existe(nomeVar.split("\\.")[0])) {
+            String[] nomeVar = ident.getText().split("\\.");
+            System.out.println("cmdLeia " + nomeVar[0] + " antes ");
+
+            if (!tabela.existe(nomeVar[0])) {
+                System.out.println("cmdLeia " + nomeVar[0] + " existe ? ");
                 JanderSemanticoUtils.adicionarErroSemantico(ident.start,
                         "identificador " + nomeVar + " nao declarado");
             } else {
-                System.out.println("cmdLeia " + nomeVar.split("\\.")[0]);
-                TabelaDeSimbolos tabelaRegistro = tabela.verificarRegistro(nomeVar.split("\\.")[0]);
+                TipoJander tipoVar = tabela.verificar(nomeVar[0]);
+                System.out.println("cmdLeia " + nomeVar[0] + " " + tipoVar);
+                TabelaDeSimbolos tabelaRegistro = REGISTROS.verificarRegistro(nomeVar[0]);
                 System.out.println("QtdEscopos: " + escoposAninhados.percorrerEscoposAninhados().size());
-                if (!tabelaRegistro.existe(nomeVar.split("\\.")[1])) {
+                REGISTROS.printTabela();
+                if (!tabelaRegistro.existe(nomeVar[1])) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start,
-                            "identificador " + nomeVar.split("\\.")[1] + " nao declarado");
+                            "identificador " + nomeVar[1] + " nao declarado");
                 }
             }
         }
@@ -251,8 +300,12 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         return super.visitParcela_unario(ctx);
     }
 
-    // tb->tb1
-    // tb(como registro), tbRegistros
+    public Void visitRegistro(JanderParser.RegistroContext ctx) {
+        System.out.println("VisitRegistroaa: " + ctx.getText());
+
+        return super.visitRegistro(ctx);
+    }
+
     // @Override
     // public Void visitIdentificador(JanderParser.IdentificadorContext ctx) {
     // TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
@@ -282,13 +335,13 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     // @Override
     // public Void visitTipo(JanderParser.TipoContext ctx) {
-    //     TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
-    //     TabelaDeSimbolos tabela2 = tabela.verificarRegistro("tVinho");
-    //     System.out.println("------------tipo----------");
-    //     tabela2.printTabela();
-    //     System.out.println("vtipo: " + ctx.getText());
-    //     System.out.println("------------fimtipo----------");
+    // TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+    // TabelaDeSimbolos tabela2 = tabela.verificarRegistro("tVinho");
+    // System.out.println("------------tipo----------");
+    // tabela2.printTabela();
+    // System.out.println("vtipo: " + ctx.getText());
+    // System.out.println("------------fimtipo----------");
 
-    //     return super.visitTipo(ctx);
+    // return super.visitTipo(ctx);
     // }
 }

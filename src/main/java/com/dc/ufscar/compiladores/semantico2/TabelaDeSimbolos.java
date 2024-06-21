@@ -1,7 +1,6 @@
 package com.dc.ufscar.compiladores.semantico2;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public class TabelaDeSimbolos {
     public enum TipoJander {
@@ -57,7 +56,7 @@ public class TabelaDeSimbolos {
     }
 
     public void printTabela() {
-        for (Map.Entry<String, EntradaTabelaDeSimbolos> entry : tabela.entrySet()) {
+        for (HashMap.Entry<String, EntradaTabelaDeSimbolos> entry : tabela.entrySet()) {
             System.out.println("Nome: " + entry.getValue().nome + " Tipo: " + entry.getValue().tipo + " Ponteiro: "
                     + entry.getValue().ponteiro);
         }

@@ -1,10 +1,14 @@
 package com.dc.ufscar.compiladores.semantico2;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class JanderSemantico extends JanderBaseVisitor<Void> {
     // TabelaDeSimbolos tabela;
     Escopos escoposAninhados;
+    int qtdEscopos = 0;
 
     // aqui temos uma tabela, a global, precisamos ver
     // como faremos em relação a tabela de escopos
@@ -17,7 +21,6 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitDecl_local_global(JanderParser.Decl_local_globalContext ctx) {
-
         if (ctx.declaracao_local() != null) {
             visitDeclaracao_local(ctx.declaracao_local());
         } else if (ctx.declaracao_global() != null) {
@@ -35,26 +38,9 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         if (ctx.IDENT() != null) {
             String nomeVar = ctx.IDENT().getText();
             String strTipoVar = ctx.tipo_basico().getText();
-            TipoJander tipoVar = TipoJander.INVALIDO;
-            switch (strTipoVar) {
-                case "INTEIRO":
-                    tipoVar = TipoJander.INTEIRO;
-                    break;
-                case "REAL":
-                    tipoVar = TipoJander.REAL;
-                    break;
-                case "LITERAL":
-                    tipoVar = TipoJander.LITERAL;
-                    break;
-                case "LOGICO":
-                    tipoVar = TipoJander.LOGICO;
-                    break;
-                default:
-                    break;
-            }
+            TipoJander tipoVar = JanderSemanticoUtils.getTipo(strTipoVar);
             if (tabela.existe(nomeVar)) {
-                JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(),
-                        "Variável " + nomeVar + " já existe");
+                JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(), "Variável " + nomeVar + " já existe");
             } else {
                 tabela.adicionar(nomeVar, tipoVar);
             }
@@ -79,26 +65,9 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
             for (JanderParser.IdentificadorContext ident : param.identificador()) {
                 String nomeParam = ident.getText();
                 String strTipoParam = param.tipo_estendido().getText();
-                TipoJander tipoParam = TipoJander.INVALIDO;
-                switch (strTipoParam) {
-                    case "INTEIRO":
-                        tipoParam = TipoJander.INTEIRO;
-                        break;
-                    case "REAL":
-                        tipoParam = TipoJander.REAL;
-                        break;
-                    case "LITERAL":
-                        tipoParam = TipoJander.LITERAL;
-                        break;
-                    case "LOGICO":
-                        tipoParam = TipoJander.LOGICO;
-                        break;
-                    default:
-                        break;
-                }
+                TipoJander tipoParam = JanderSemanticoUtils.getTipo(strTipoParam);
                 if (tabela.existe(nomeParam)) {
-                    JanderSemanticoUtils.adicionarErroSemantico(ident.start,
-                            "Parâmetro " + nomeParam + " já existe");
+                    JanderSemanticoUtils.adicionarErroSemantico(ident.start, "Parâmetro " + nomeParam + " já existe");
                 } else {
                     tabela.adicionar(nomeParam, tipoParam);
                 }
@@ -111,36 +80,34 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
     public Void visitVariavel(JanderParser.VariavelContext ctx) {
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         String strTipoVar = ctx.tipo().getText();
-        TipoJander tipoVar = TipoJander.INVALIDO;
-        switch (strTipoVar.toUpperCase()) {
-            case "INTEIRO":
-                tipoVar = TipoJander.INTEIRO;
-                break;
-            case "REAL":
-                tipoVar = TipoJander.REAL;
-                break;
-            case "LITERAL":
-                tipoVar = TipoJander.LITERAL;
-                break;
-            case "LOGICO":
-                tipoVar = TipoJander.LOGICO;
-                break;
-            default:
-                break;
-        }
+        TipoJander tipoVar = JanderSemanticoUtils.getTipo(strTipoVar.startsWith("registro") ? "registro" : strTipoVar);
+        Boolean registro = false;
+        List<TabelaDeSimbolos> tabelasRegistro = new ArrayList<>();
+        
         System.out.println("tipoVar: " + strTipoVar);
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nomeVar = ident.getText();
             if (tabela.existe(nomeVar)) {
-
-                JanderSemanticoUtils.adicionarErroSemantico(ident.start, "identificador " +
-                        nomeVar + " ja declarado anteriormente");
+                JanderSemanticoUtils.adicionarErroSemantico(ident.start, "identificador " + nomeVar + " ja declarado anteriormente");
             } else {
+                System.out.println("VisitVariavel: " + nomeVar + " " + tipoVar);
                 tabela.adicionar(nomeVar, tipoVar);
                 if (tipoVar == TipoJander.INVALIDO) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start, "tipo " + strTipoVar + " nao declarado");
+                } else if(tipoVar == TipoJander.REGISTRO) {
+                    registro = true;
+                    TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
+                    tabelasRegistro.add(tabelaRegistro);
+                    tabela.adicionarRegistro(nomeVar, tabelaRegistro);
                 }
             }
+        }
+        if(registro) {
+            for(TabelaDeSimbolos tabelaRegistro : tabelasRegistro) {
+                escoposAninhados.adicionarEscopo(tabelaRegistro);
+            }
+            System.out.println("qtdEscopos: " + qtdEscopos);
+            tabelasRegistro.clear();
         }
         // na duvida tira (:
         return super.visitVariavel(ctx);
@@ -155,13 +122,11 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         if (tipoExpressao != TipoJander.INVALIDO) {
             String nomeVar = ctx.identificador().getText();
             if (!tabela.existe(nomeVar)) {
-                JanderSemanticoUtils.adicionarErroSemantico(ctx.identificador().start,
-                        "identificador " + nomeVar + " nao declarado");
+                JanderSemanticoUtils.adicionarErroSemantico(ctx.identificador().start, "identificador " + nomeVar + " nao declarado");
             } else {
                 TipoJander tipoVar = tabela.verificar(nomeVar);
-                if (JanderSemanticoUtils.verificarTipoCompativeL(tabela, tipoVar, tipoExpressao)) {
-                    JanderSemanticoUtils.adicionarErroSemantico(ctx.identificador().start,
-                            "atribuicao nao compativel para " + nomeVar);
+                if (JanderSemanticoUtils.verificarTipoCompativeL(tabela, tipoVar, tipoExpressao) || tabela.verificarPonteiro(nomeVar) && !ctx.expressao().getText().contains("&")) {
+                    JanderSemanticoUtils.adicionarErroSemantico(ctx.identificador().start,  "atribuicao nao compativel para " + ctx.circ.getText() + nomeVar);
                 }
             }
         }
@@ -175,26 +140,11 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nomeVar = ident.getText();
             if (!tabela.existe(nomeVar)) {
-                JanderSemanticoUtils.adicionarErroSemantico(ident.start,
-                        "identificador " + nomeVar + " nao declarado");
+                JanderSemanticoUtils.adicionarErroSemantico(ident.start, "identificador " + nomeVar + " nao declarado");
             }
         }
         return super.visitCmdLeia(ctx);
     }
-
-    // @Override
-    // public Void visitExp_aritmetica(JanderParser.Exp_aritmeticaContext ctx) {
-
-    // for (JanderParser.TermoContext termo : ctx.termo()) {
-    // String nomeVar = termo.getText();
-    // if (!tabela.existe(nomeVar)) {
-    // JanderSemanticoUtils.adicionarErroSemantico(termo.start,
-    // "identificador " + nomeVar + " nao declarado");
-    // }
-    // }
-
-    // return super.visitExp_aritmetica(ctx);
-    // }
 
     @Override
     public Void visitParcela_nao_unario(JanderParser.Parcela_nao_unarioContext ctx) {
@@ -219,5 +169,4 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
         return super.visitParcela_unario(ctx);
     }
-
 }

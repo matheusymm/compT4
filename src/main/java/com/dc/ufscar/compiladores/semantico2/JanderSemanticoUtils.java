@@ -11,10 +11,28 @@ import com.dc.ufscar.compiladores.semantico2.JanderParser.Fator_logicoContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.ParcelaContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.TermoContext;
 import com.dc.ufscar.compiladores.semantico2.JanderParser.Termo_logicoContext;
+import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class JanderSemanticoUtils {
     public static List<String> errosSemanticos = new ArrayList<>();
     public static List<String> nomeVarAtrib = new ArrayList<>();
+
+    public static TipoJander getTipo(String tipo) {
+        switch (tipo.replace("^", "").toUpperCase()) {
+            case "INTEIRO":
+                return TipoJander.INTEIRO;
+            case "REAL":
+                return TipoJander.REAL;
+            case "LITERAL":
+                return TipoJander.LITERAL;
+            case "LOGICO":
+                return TipoJander.LOGICO;
+            case "REGISTRO":
+                return TipoJander.REGISTRO;
+            default:
+                return TipoJander.INVALIDO;
+        }
+    }
 
     public static void setNomeVarAtrib(String nome) {
         nomeVarAtrib.add(String.format("%s", nome));

@@ -38,11 +38,11 @@ public class TabelaDeSimbolos {
         }
 
         // public void criaTabelaRegistro() {
-        //     this.tabelaRegistro = new TabelaDeSimbolos();
+        // this.tabelaRegistro = new TabelaDeSimbolos();
         // }
     }
 
-    private final Map<String, EntradaTabelaDeSimbolos> tabela;
+    private final HashMap<String, EntradaTabelaDeSimbolos> tabela;
 
     public TabelaDeSimbolos() {
         this.tabela = new HashMap<>();
@@ -54,6 +54,13 @@ public class TabelaDeSimbolos {
 
     public void adicionar(String nome, TipoJander tipo, Boolean ponteiro) {
         tabela.put(nome, new EntradaTabelaDeSimbolos(nome, tipo, ponteiro));
+    }
+
+    public void printTabela() {
+        for (Map.Entry<String, EntradaTabelaDeSimbolos> entry : tabela.entrySet()) {
+            System.out.println("Nome: " + entry.getValue().nome + " Tipo: " + entry.getValue().tipo + " Ponteiro: "
+                    + entry.getValue().ponteiro);
+        }
     }
 
     public boolean existe(String nome) {

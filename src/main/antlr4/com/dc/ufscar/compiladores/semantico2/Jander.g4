@@ -85,7 +85,7 @@ declaracoes : decl_local_global*;
 decl_local_global : declaracao_local | declaracao_global;
 declaracao_local : 'declare' variavel
 				  |	'constante' const=IDENT ':' tipo_basico '=' valor_constante
-                  | 'tipo' tipo=IDENT ':' tipo;
+                  | 'tipo' type=IDENT ':' tipo;
 variavel : identificador (',' identificador)* ':' tipo;
 identificador : IDENT ('.' IDENT)* dimensao;
 dimensao : ('[' exp_aritmetica ']')*;

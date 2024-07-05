@@ -139,10 +139,7 @@ public class JanderSemanticoUtils {
 
         if (ctx.identificador() != null) {
             String nome = ctx.identificador().getText();
-            if (!tabela.existe(nome)) {
-                adicionarErroSemantico(ctx.getStart(), "identificador " + nome + " nao declarado");
-                return TabelaDeSimbolos.TipoJander.INVALIDO;
-            }
+            nome = nome.substring(0, nome.indexOf("[") == -1 ? nome.length(): nome.indexOf("["));
             return verificarTipo(tabela, nome);
         } else if (ctx.IDENT() != null) {
             return tabela.verificar(ctx.IDENT().getText());

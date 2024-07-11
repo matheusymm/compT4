@@ -18,6 +18,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         // tabela = new TabelaDeSimbolos();
         escoposAninhados = new Escopos();
         tabelaGlobal = escoposAninhados.obterEscopoAtual();
+        System.out.println("TABELA GLOBAL:" + tabelaGlobal.toString());
         return super.visitPrograma(ctx);
     }
 
@@ -84,7 +85,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitDeclaracao_global(JanderParser.Declaracao_globalContext ctx) {
-        escoposAninhados.criarNovoEscopo();
+       
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         if (ctx.FUNCAO() != null) {
             String nomeFuncao = ctx.IDENT().getText();
@@ -96,27 +97,58 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
             String nomeProcedimento = ctx.IDENT().getText();
             tabela.adicionar(nomeProcedimento, TipoJander.VOID);
         }
+        if(escoposAninhados.percorrerEscoposAninhados().size() > 1) { // Se tiver mais de um escopo, abandonar o escopo atual que seria referente a ultima funcao/procedimento
+            escoposAninhados.abandonarEscopo();
+        }
+        escoposAninhados.criarNovoEscopo();
+        TabelaDeSimbolos tabelaFuncao = escoposAninhados.obterEscopoAtual();
         for (JanderParser.ParametroContext param : ctx.parametros().parametro()) {
             for (JanderParser.IdentificadorContext ident : param.identificador()) {
                 String nomeParam = ident.getText();
                 String strTipoParam = param.tipo_estendido().getText();
                 TipoJander tipoParam = JanderSemanticoUtils.getTipo(strTipoParam);
-                if (tabela.existe(nomeParam)) {
+                Boolean tipoVarRegistro = false;
+                if (tipoParam == TipoJander.INVALIDO) {
+                    if (tabela.existe(strTipoParam) && tabela.verificar(strTipoParam) == TipoJander.REGISTRO) {
+                        tipoParam = TipoJander.REGISTRO;
+                        tipoVarRegistro = true;
+                    }
+                }
+                System.out.println("Tipo e nome: " + strTipoParam + " " + nomeParam + " " + tipoParam);
+                if (tabelaFuncao.existe(nomeParam)) {
                     JanderSemanticoUtils.adicionarErroSemantico(ident.start, "Parâmetro " + nomeParam + " já existe");
                 } else {
-                    tabela.adicionar(nomeParam, tipoParam);
+                    if (tipoVarRegistro) {
+                        TabelaDeSimbolos tabelaRegistro = tabela.verificarRegistro(strTipoParam);
+                        tabelaFuncao.adicionar(nomeParam, tipoParam);
+                        tabelaFuncao.adicionarRegistro(nomeParam, tabelaRegistro);
+                    }else {
+                        tabelaFuncao.adicionar(nomeParam, tipoParam);
+                    }
                 }
             }
         }
+        //Quando tirar essa tabela de "cima"?
         return super.visitDeclaracao_global(ctx);
+    }
+
+    @Override
+    public Void visitCorpo(JanderParser.CorpoContext ctx) {
+        if(escoposAninhados.percorrerEscoposAninhados().size() > 1) { // Se tiver mais de um escopo, abandonar o escopo atual que seria referente a ultima funcao/procedimento
+            escoposAninhados.abandonarEscopo();
+        }
+        return super.visitCorpo(ctx);
     }
 
     @Override
     public Void visitVariavel(JanderParser.VariavelContext ctx) {
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        System.out.println("TABELA ATUALriavel:" + tabela.toString());
+
         String strTipoVar = ctx.tipo().getText();
         TipoJander tipoVar = JanderSemanticoUtils.getTipo(strTipoVar.startsWith("registro") ? "registro" : strTipoVar);
         Boolean tipoVarRegistro = false;
+
         if (tipoVar == TipoJander.INVALIDO) {
             if (tabela.existe(strTipoVar) && tabela.verificar(strTipoVar) == TipoJander.REGISTRO) {
                 tipoVar = TipoJander.REGISTRO;
@@ -124,7 +156,8 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
             }
         }
 
-        System.out.println("tipoVar: " + strTipoVar);
+        System.out.println("tipoVar: " + strTipoVar );
+        System.out.println(tabela.existe(strTipoVar) );
         for (JanderParser.IdentificadorContext ident : ctx.identificador()) {
             String nomeVar = ident.getText();
             if (tabela.existe(nomeVar)) {
@@ -141,6 +174,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                 } else if (tipoVar == TipoJander.REGISTRO) {
                     if (tipoVarRegistro) {
                         TabelaDeSimbolos tabelaRegistro = tabela.verificarRegistro(strTipoVar);
+                        System.out.println("VisitVariavelRegistro323: " + nomeVar + " " + tabelaRegistro);
                         tabela.adicionarRegistro(nomeVar, tabelaRegistro);
                     } else {
                         TabelaDeSimbolos tabelaRegistro = new TabelaDeSimbolos();
@@ -175,7 +209,10 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitCmdAtribuicao(JanderParser.CmdAtribuicaoContext ctx) {
+        System.out.println("QTDTABELAS: " + escoposAninhados.percorrerEscoposAninhados().size());
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
+        System.out.println("TABELA ATUAL:" + tabela.toString());
+
         JanderSemanticoUtils.setNomeVarAtrib(ctx.identificador().getText());
         System.out.println("CmdAtribuicao: " + ctx.identificador().getText() + " " + ctx.expressao().getText());
         TipoJander tipoExpressao = JanderSemanticoUtils.verificarTipo(tabela, ctx.expressao());
@@ -255,33 +292,6 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
         }
         return super.visitCmdLeia(ctx);
     }
-
-    // @Override
-    // public Void visitCmdEscreva(JanderParser.CmdEscrevaContext ctx) {
-    // TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
-    // for (JanderParser.ExpressaoContext exp : ctx.expressao()) {
-    // for (JanderParser.Termo_logicoContext tl : exp.termo_logico()) {
-    // for (JanderParser.Fator_logicoContext fl : tl.fator_logico()) {
-    // for (JanderParser.Exp_aritmeticaContext ea :
-    // fl.parcela_logica().exp_relacional().exp_aritmetica()) {
-    // for (JanderParser.TermoContext ter : ea.termo()) {
-    // for (JanderParser.FatorContext f : ter.fator()) {
-    // for (JanderParser.ParcelaContext p : f.parcela()) {
-    // for (JanderParser.IdentificadorContext ident :
-    // p.parcela_unario().identificador()) {
-
-    // }
-    // }
-    // }
-
-    // }
-    // }
-    // }
-
-    // }
-    // }
-    // return super.visitCmdEscreva(ctx);
-    // }
 
     @Override
     public Void visitParcela_nao_unario(JanderParser.Parcela_nao_unarioContext ctx) {

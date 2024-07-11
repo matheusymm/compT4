@@ -89,6 +89,7 @@ public class JanderSemanticoUtils {
         TabelaDeSimbolos.TipoJander ret = null;
         for (FatorContext fa : ctx.fator()) {
             TabelaDeSimbolos.TipoJander aux = verificarTipo(tabela, fa);
+            System.out.println("auxTt: " + aux + " retTT " + ret);
             if (ret == null) {
                 ret = aux;
             } else if (aux != TabelaDeSimbolos.TipoJander.INVALIDO && verificarTipoCompativeL(tabela, aux, ret)) {
@@ -140,6 +141,16 @@ public class JanderSemanticoUtils {
         if (ctx.identificador() != null) {
             String nome = ctx.identificador().getText();
             nome = nome.substring(0, nome.indexOf("[") == -1 ? nome.length(): nome.indexOf("["));
+            String[] structsAttribs = nome.split(nome.contains(".") ? "\\." : "");
+            nome = structsAttribs[structsAttribs.length - 1];
+            // Verifica se é um registro e pega o ultimo atributo(vai ser 1, mas se tivesse registros aninhados, funcionaria mais ou menos assim)
+            // Se for um registro entao o tamanho do array vai ser mais de um campo, logo preciso pegar a tabela do registro pra verificar o tipo da variavel deste
+            // O problema daqui ocorre devido ao fato de variaveis definidas no parametro da função/procedimentos nao estarem sendo adicionadas na tabela da função
+            if(ctx.identificador().getText().contains(".")){
+                TabelaDeSimbolos tabRegistro = tabela.verificarRegistro(structsAttribs[0]);
+                System.out.println("structsAttribs[0]: " + structsAttribs[0]);
+                tabela = tabRegistro;
+            }
             return verificarTipo(tabela, nome);
         } else if (ctx.IDENT() != null) {
             return tabela.verificar(ctx.IDENT().getText());
@@ -178,7 +189,7 @@ public class JanderSemanticoUtils {
 
     public static TabelaDeSimbolos.TipoJander verificarTipo(TabelaDeSimbolos tabela, String nome) {
         if (!tabela.existe(nome)) {
-            adicionarErroSemantico(null, "identificador " + nome + " nao declarado");
+            //adicionarErroSemantico(null, "identificador " + nome + " nao declarado");
             return TabelaDeSimbolos.TipoJander.INVALIDO;
         }
         return tabela.verificar(nome);

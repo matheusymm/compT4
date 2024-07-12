@@ -42,4 +42,12 @@ public class TabelaDeSimbolos {
     public void adicionarRegistro(String nome, TabelaDeSimbolos tabelaRegistro) {
         tabelaDeSimbolos.get(nome).tabelaRegistro = tabelaRegistro;
     }
+
+    public void adicionarParametro(String nome, String parametro) {
+        tabelaDeSimbolos.get(nome).parametros.add(parametro);
+    }
+
+    public String pegarParametro(String nome, int posicao) {
+        return tabelaDeSimbolos.get(nome).parametros.get(posicao);
+    }
 }

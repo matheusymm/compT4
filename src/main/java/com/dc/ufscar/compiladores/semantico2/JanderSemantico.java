@@ -1,8 +1,5 @@
 package com.dc.ufscar.compiladores.semantico2;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class JanderSemantico extends JanderBaseVisitor<Void> {
@@ -125,6 +122,7 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                     }else {
                         tabelaFuncao.adicionar(nomeParam, tipoParam);
                     }
+                    tabela.adicionarParametro(ctx.IDENT().getText(), nomeParam);
                 }
             }
         }
@@ -330,9 +328,27 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                 JanderSemanticoUtils.adicionarErroSemantico(ctx.identificador().start,
                         "identificador " + ctx.identificador().getText() + " nao declarado");
             }
-        } else if (ctx.NUM_INT() != null) {
-        } else if (ctx.NUM_REAL() != null) {
-        }
+        } else if (ctx.IDENT() != null) {
+            System.out.println("Parcela_unario: " + ctx.IDENT().getText());
+            if (!tabela.existe(ctx.IDENT().getText())) {
+                JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(),
+                        "identificador " + ctx.IDENT().getText() + " nao declarado");
+            }
+            int count = 0;
+            for(JanderParser.ExpressaoContext exp : ctx.expressao()) {
+                TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
+                if(tipoExp == TipoJander.INVALIDO) {
+                    JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidadeINVALIDO de parametros na chamada de " + ctx.IDENT().getText());
+                }
+                else {
+                    String nomePar = tabela.pegarParametro(ctx.IDENT().getText(), count);
+                    TipoJander tipoPar = tabela.verificarRegistro(ctx.IDENT().getText()).verificar(nomePar);
+                    if(tipoExp != tipoPar) {
+                        JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidade de parametros na chamada de " + ctx.IDENT().getText());
+                    }
+                }
+            }
+        } 
 
         return super.visitParcela_unario(ctx);
     }

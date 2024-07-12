@@ -139,14 +139,17 @@ public class JanderSemanticoUtils {
             JanderParser.Parcela_unarioContext ctx) {
 
         if (ctx.identificador() != null) {
+            System.out.println("Punario: " + ctx.identificador().getText());
             String nome = ctx.identificador().getText();
             nome = nome.substring(0, nome.indexOf("[") == -1 ? nome.length(): nome.indexOf("["));
-            String[] structsAttribs = nome.split(nome.contains(".") ? "\\." : "");
-            nome = structsAttribs[structsAttribs.length - 1];
+            System.out.println("Punario pos []: " + nome);
+            System.out.println("Punario pos ponto: " + nome);
             // Verifica se é um registro e pega o ultimo atributo(vai ser 1, mas se tivesse registros aninhados, funcionaria mais ou menos assim)
             // Se for um registro entao o tamanho do array vai ser mais de um campo, logo preciso pegar a tabela do registro pra verificar o tipo da variavel deste
             // O problema daqui ocorre devido ao fato de variaveis definidas no parametro da função/procedimentos nao estarem sendo adicionadas na tabela da função
             if(ctx.identificador().getText().contains(".")){
+                String[] structsAttribs = nome.split(nome.contains(".") ? "\\." : "");
+                nome = structsAttribs[structsAttribs.length - 1];
                 TabelaDeSimbolos tabRegistro = tabela.verificarRegistro(structsAttribs[0]);
                 System.out.println("structsAttribs[0]: " + structsAttribs[0]);
                 tabela = tabRegistro;
@@ -192,6 +195,7 @@ public class JanderSemanticoUtils {
             //adicionarErroSemantico(null, "identificador " + nome + " nao declarado");
             return TabelaDeSimbolos.TipoJander.INVALIDO;
         }
+        System.out.println("Nome: " + nome + " existe.");
         return tabela.verificar(nome);
     }
 

@@ -1,5 +1,8 @@
 package com.dc.ufscar.compiladores.semantico2;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 
 public class EntradaTabelaDeSimbolos {
@@ -7,7 +10,7 @@ public class EntradaTabelaDeSimbolos {
     TipoJander tipo;
     Boolean ponteiro;
     TabelaDeSimbolos tabelaRegistro;
-    // boolean constante ?
+    List<String> parametros = new ArrayList<String>();
 
     public EntradaTabelaDeSimbolos(String nome, TipoJander tipo) {
         this.nome = nome;

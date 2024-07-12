@@ -50,4 +50,8 @@ public class TabelaDeSimbolos {
     public String pegarParametro(String nome, int posicao) {
         return tabelaDeSimbolos.get(nome).parametros.get(posicao);
     }
+
+    public int pegarQuantidadeParametros(String nome) {
+        return tabelaDeSimbolos.get(nome).parametros.size();
+    }
 }

@@ -5,6 +5,7 @@ import com.dc.ufscar.compiladores.semantico2.TabelaDeSimbolos.TipoJander;
 public class JanderSemantico extends JanderBaseVisitor<Void> {
     TabelaDeSimbolos tabelaGlobal;
     Escopos escoposAninhados;
+    boolean ehFuncao = false;
 
     int qtdEscopos = 0;
 
@@ -82,20 +83,21 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
 
     @Override
     public Void visitDeclaracao_global(JanderParser.Declaracao_globalContext ctx) {
-       
+        if(escoposAninhados.percorrerEscoposAninhados().size() > 1) { // Se tiver mais de um escopo, abandonar o escopo atual que seria referente a ultima funcao/procedimento
+            escoposAninhados.abandonarEscopo();
+        }
         TabelaDeSimbolos tabela = escoposAninhados.obterEscopoAtual();
         if (ctx.FUNCAO() != null) {
+            ehFuncao = true;
             String nomeFuncao = ctx.IDENT().getText();
             // TipoJander tipoFuncao = JanderSemanticoUtils.verificarTipo(tabela,
             // ctx.tipo_estendido());
-            TipoJander tipoFuncao = TipoJander.REAL;
+            TipoJander tipoFuncao = JanderSemanticoUtils.getTipo(ctx.tipo_estendido().getText());
             tabela.adicionar(nomeFuncao, tipoFuncao);
+            System.out.println(nomeFuncao + " " + tipoFuncao);
         } else if (ctx.PROCEDIMENTO() != null) {
             String nomeProcedimento = ctx.IDENT().getText();
             tabela.adicionar(nomeProcedimento, TipoJander.VOID);
-        }
-        if(escoposAninhados.percorrerEscoposAninhados().size() > 1) { // Se tiver mais de um escopo, abandonar o escopo atual que seria referente a ultima funcao/procedimento
-            escoposAninhados.abandonarEscopo();
         }
         escoposAninhados.criarNovoEscopo();
         TabelaDeSimbolos tabelaFuncao = escoposAninhados.obterEscopoAtual();
@@ -126,8 +128,11 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                 }
             }
         }
+        tabela.adicionarRegistro(ctx.IDENT().getText(), tabelaFuncao);
         //Quando tirar essa tabela de "cima"?
-        return super.visitDeclaracao_global(ctx);
+        var retorne = super.visitDeclaracao_global(ctx);
+        ehFuncao = false;
+        return retorne;
     }
 
     @Override
@@ -329,27 +334,42 @@ public class JanderSemantico extends JanderBaseVisitor<Void> {
                         "identificador " + ctx.identificador().getText() + " nao declarado");
             }
         } else if (ctx.IDENT() != null) {
-            System.out.println("Parcela_unario: " + ctx.IDENT().getText());
-            if (!tabela.existe(ctx.IDENT().getText())) {
+            String nomeIDENT = ctx.IDENT().getText();
+            System.out.println("Parcela_unario: " + nomeIDENT);
+            System.out.println("Tabela: " + tabela.toString());
+            if (!tabela.existe(nomeIDENT)) {
                 JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(),
-                        "identificador " + ctx.IDENT().getText() + " nao declarado");
+                        "identificador " + nomeIDENT + " nao declarado");
             }
             int count = 0;
             for(JanderParser.ExpressaoContext exp : ctx.expressao()) {
                 TipoJander tipoExp = JanderSemanticoUtils.verificarTipo(tabela, exp);
                 if(tipoExp == TipoJander.INVALIDO) {
-                    JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidadeINVALIDO de parametros na chamada de " + ctx.IDENT().getText());
+                    JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidadeINVALIDO de parametros na chamada de " + nomeIDENT);
                 }
                 else {
-                    String nomePar = tabela.pegarParametro(ctx.IDENT().getText(), count);
-                    TipoJander tipoPar = tabela.verificarRegistro(ctx.IDENT().getText()).verificar(nomePar);
+                    String nomePar = tabela.pegarParametro(nomeIDENT, count);
+                    System.out.println("Puna: " + nomeIDENT + " " + nomePar);
+                    TipoJander tipoPar = tabela.verificarRegistro(nomeIDENT).verificar(nomePar);
                     if(tipoExp != tipoPar) {
-                        JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidade de parametros na chamada de " + ctx.IDENT().getText());
+                        JanderSemanticoUtils.adicionarErroSemantico(exp.start, "incompatibilidade de parametros na chamada de " + nomeIDENT);
                     }
                 }
+                count++;
+            }
+            if(count != tabela.pegarQuantidadeParametros(nomeIDENT)) {
+                JanderSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(), "incompatibilidade de parametros na chamada de " + nomeIDENT);
             }
         } 
 
         return super.visitParcela_unario(ctx);
+    }
+
+    @Override
+    public Void visitCmdRetorne(JanderParser.CmdRetorneContext ctx) {
+        if(ehFuncao == false) {
+            JanderSemanticoUtils.adicionarErroSemantico(ctx.start, "comando retorne nao permitido nesse escopo");
+        }
+        return super.visitCmdRetorne(ctx);
     }
 }
